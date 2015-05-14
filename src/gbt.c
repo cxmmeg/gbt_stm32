@@ -32,15 +32,15 @@ extern void gbt_out(uint8_t *buf, int len){
 static void parcer(gbt_t *gbt, uint8_t byte){
   
   switch(gbt->state){
-    /* Ïðè¸ì êîììàíäû */
+    /* ÐŸÑ€Ð¸Ñ‘Ð¼ ÐºÐ¾Ð¼Ð¼Ð°Ð½Ð´Ñ‹ */
   case __STATE_RECV_CMD:
     gbt->command=byte;
     gbt->state =  __STATE_RECV_CMD_CMP;
     break;
     
-    /* Ïðè¸ì êîìïëåìåíòàðíîãî áàéòà êîììàíäû äëÿ ïðîâåðêè */
+    /* ÐŸÑ€Ð¸Ñ‘Ð¼ ÐºÐ¾Ð¼Ð¿Ð»ÐµÐ¼ÐµÐ½Ñ‚Ð°Ñ€Ð½Ð¾Ð³Ð¾ Ð±Ð°Ð¹Ñ‚Ð° ÐºÐ¾Ð¼Ð¼Ð°Ð½Ð´Ñ‹ Ð´Ð»Ñ Ð¿Ñ€Ð¾Ð²ÐµÑ€ÐºÐ¸ */
   case __STATE_RECV_CMD_CMP:
-    /* Ïðîâåðêà ïðîéäåíà */
+    /* ÐŸÑ€Ð¾Ð²ÐµÑ€ÐºÐ° Ð¿Ñ€Ð¾Ð¹Ð´ÐµÐ½Ð° */
     if ((gbt->command ^ byte)==0xFF){
       sendACK(gbt);
       gbt->state = __STATE_EXEC;
@@ -50,7 +50,7 @@ static void parcer(gbt_t *gbt, uint8_t byte){
       break;
     }
   case __STATE_EXEC:
-    /* Âûïîëíåíèå êîììàíäû */
+    /* Ð’Ñ‹Ð¿Ð¾Ð»Ð½ÐµÐ½Ð¸Ðµ ÐºÐ¾Ð¼Ð¼Ð°Ð½Ð´Ñ‹ */
     switch(gbt->command){
     case GBT_CMD_GET:
       sendLength(gbt, GBT_NUM_CMDS);
@@ -59,14 +59,14 @@ static void parcer(gbt_t *gbt, uint8_t byte){
       sendACK(gbt);
       gbt->state = __STATE_RECV_CMD;
       break;
-      /* Íåò òàêîé êîììàíäû */
+      /* ÐÐµÑ‚ Ñ‚Ð°ÐºÐ¾Ð¹ ÐºÐ¾Ð¼Ð¼Ð°Ð½Ð´Ñ‹ */
     default:
       sendNACK(gbt);
       gbt->state = __STATE_RECV_CMD;
     }
     break;
     
-    /* Íåò òàêîãî ñîñòîÿíèÿ */
+    /* ÐÐµÑ‚ Ñ‚Ð°ÐºÐ¾Ð³Ð¾ ÑÐ¾ÑÑ‚Ð¾ÑÐ½Ð¸Ñ */
   default:
     sendNACK(gbt);
     gbt->state = __STATE_RECV_CMD;
@@ -83,7 +83,7 @@ static void sendNACK(gbt_t *gbt){
   gbt->outFunc(&nack, 1);
 }
 
-/* Îòîñëàòü äëèííó ïàêåòà */
+/* ÐžÑ‚Ð¾ÑÐ»Ð°Ñ‚ÑŒ Ð´Ð»Ð¸Ð½Ð½Ñƒ Ð¿Ð°ÐºÐµÑ‚Ð° */
 static void sendLength(gbt_t *gbt, uint8_t len){
   gbt->outFunc(&len, 1);
 }
