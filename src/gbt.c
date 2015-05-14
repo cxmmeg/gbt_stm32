@@ -1,11 +1,9 @@
 #include "gbt.h"
 
+
 #define __STATE_RECV_CMD (0)
 #define __STATE_RECV_CMD_CMP (1)
 #define __STATE_EXEC (2)
-
-
-
 
 /* Handler API */
 void gbt_init(gbt_t *gbt){
@@ -14,7 +12,7 @@ void gbt_init(gbt_t *gbt){
   gbt->outFunc = dummyOut;
 }
 
-void gbt_in(gbt_t *gbt, unsigned char *buf, int *len){
+void gbt_in(gbt_t *gbt, uint8_t *buf, int *len){
   int index = 0;
   while (index<*len){
     parcer(gbt, buf[index]);
@@ -26,12 +24,12 @@ void gbt_addCallbackOut(gbt_t *gbt, callbackOut_t *callback){
   gbt->outFunc = callback;
 }
 /*
-extern void gbt_out(unsigned char *buf, int len){
+extern void gbt_out(uint8_t *buf, int len){
 }
 */
 /***************/
 
-static void parcer(gbt_t *gbt, unsigned char byte){
+static void parcer(gbt_t *gbt, uint8_t byte){
   
   switch(gbt->state){
     /* Приём комманды */
@@ -76,29 +74,29 @@ static void parcer(gbt_t *gbt, unsigned char byte){
 }
 
 static void sendACK(gbt_t *gbt){
-  unsigned char ack= GBT_ACK;
+  uint8_t ack= GBT_ACK;
   gbt->outFunc(&ack, 1);
 }
 
 static void sendNACK(gbt_t *gbt){
-  unsigned char nack= GBT_NACK;
+  uint8_t nack= GBT_NACK;
   gbt->outFunc(&nack, 1);
 }
 
 /* Отослать длинну пакета */
-static void sendLength(gbt_t *gbt, unsigned char len){
+static void sendLength(gbt_t *gbt, uint8_t len){
   gbt->outFunc(&len, 1);
 }
 
 static void sendVersion(gbt_t *gbt){
-  unsigned char ver= GBT_VERSION;
+  uint8_t ver= GBT_VERSION;
   gbt->outFunc(&ver, 1);
 }
 
 static void sendCommandsList(gbt_t *gbt){
-  unsigned char pack[GBT_NUM_CMDS] = {GBT_CMD_GET, GBT_CMD_GET_ID, GBT_CMD_READ_MEM, GBT_CMD_WRITE_MEM, GBT_CMD_GO, GBT_CMD_ERASE};
+  uint8_t pack[GBT_NUM_CMDS] = {GBT_CMD_GET, GBT_CMD_GET_ID, GBT_CMD_READ_MEM, GBT_CMD_WRITE_MEM, GBT_CMD_GO, GBT_CMD_ERASE};
   gbt->outFunc(pack, GBT_NUM_CMDS);
 }
 
-static void dummyOut(unsigned char *buf, int len){
+static void dummyOut(uint8_t *buf, int32_t len){
 }
