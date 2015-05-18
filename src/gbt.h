@@ -8,7 +8,8 @@
 #define GBT_ACK (0x79)
 #define GBT_NACK (0x1F)
 
-#define GBT_NUM_CMDS (0x06)
+#define GBT_NUM_CMDS (6)
+#define GBT_NUM_ADDR_CS (5)
 
 #define GBT_CMD_GET (0x00)
 #define GBT_CMD_GET_ID (0x02)
@@ -23,10 +24,22 @@
 
 typedef void (callbackOut_t)(uint8_t *buf, int32_t len);
 
+typedef enum {
+    STATE_WAIT_CMD = 0,
+    STATE_CHECK_CMD_GET,
+    STATE_CMD_GET,
+    STATE_CHECK_CMD_WM,
+    STATE_CMD_WM,
+    STATE_CMD_WM_RECV_SADDR_CS,
+    STATE_CMD_WM_RECV_NUM_DATA,
+    STATE_CMD_WM_RECV_DATA,
+    STATE_CHECK_CMD_RM
+} gbt_state_t;
+
 typedef struct {
-  uint8_t state;
+  gbt_state_t state;
   uint8_t command;
-  uint8_t stage;
+  uint32_t numState;
   uint32_t recvIndex;
   uint32_t recvLen;
   uint8_t *recvBuf;
@@ -34,10 +47,13 @@ typedef struct {
   callbackOut_t *outFunc;
 } gbt_t;
 
+
+
 void gbt_init(gbt_t *gbt);
 void gbt_in(gbt_t *gbt, uint8_t *buf, int32_t *len);
 void gbt_addCallbackOut(gbt_t *gbt, callbackOut_t *callback);
-/*extern void gbt_out(uint8_t *buf, int len);*/
+
+void gbt_setStartAddress(gbt_t *gbt, uint32_t addr);
 
 /**********************/
 static void dummyOut(uint8_t *buf, int32_t len);
@@ -47,4 +63,11 @@ static void sendNACK(gbt_t *gbt);
 static void sendLength(gbt_t *gbt, uint8_t len);
 static void sendVersion(gbt_t *gbt);
 static void sendCommandsList(gbt_t *gbt);
+
+static uint8_t isRdpInactive(gbt_t *gbt);
+
+static void setBuffNum(gbt_t *gbt, uint32_t num);
+static uint8_t putBuff(gbt_t *gbt, uint8_t data);
+static uint8_t xorVerify(uint8_t *buff, uint32_t num, uint8_t checksum);
+
 #endif
