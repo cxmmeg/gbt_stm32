@@ -23,6 +23,14 @@
 #define GBT_STAGE_READ_START_ADDR_CHS (0x02)
 
 typedef void (callbackOut_t)(uint8_t *buf, int32_t len);
+typedef uint32_t (callbackMemRW_t)(uint32_t startAddress, uint8_t *buff, uint32_t len);
+
+typedef struct {
+  callbackOut_t *outFunc;
+  callbackMemRW_t *memRead;
+  callbackMemRW_t *memWrite;
+  callbackMemRW_t *memClear;
+}gbt_handlers_t;
 
 typedef enum {
     STATE_WAIT_CMD = 0,
@@ -43,19 +51,42 @@ typedef struct {
   uint32_t recvIndex;
   uint32_t recvLen;
   uint8_t *recvBuf;
-  
-  callbackOut_t *outFunc;
+  uint32_t recvBufLength;
+  gbt_handlers_t *handlers;
+
 } gbt_t;
 
 
 
-void gbt_init(gbt_t *gbt);
-void gbt_in(gbt_t *gbt, uint8_t *buf, int32_t *len);
+/**
+ * Инициализация переменной gbt
+ * @param gbt
+ */
+void gbt_init(gbt_t *gbt, uint8_t *rxbuf, uint32_t rxBufLen, gbt_handlers_t *handlers);
+void gbt_in(gbt_t *gbt, uint8_t *buf, uint32_t len);
+
+/**
+ * Установка калбака выходного потока данных на последовательное устройство
+ * @param gbt
+ * @param callback обработчик в формате void (callbackOut_t)(uint8_t *buf, int32_t len)
+ */
 void gbt_addCallbackOut(gbt_t *gbt, callbackOut_t *callback);
 
-void gbt_setStartAddress(gbt_t *gbt, uint32_t addr);
+/* Запись полученных данных в память */
+/**
+ * Запись полученных данных в память
+ * @param gbt
+ * @param buff начало буфера для записи
+ * @param len длина записываемых данных
+ */
+uint32_t gbt_write(uint32_t startAddress, uint8_t *buff, uint32_t len);
 
 /**********************/
+
+static void __outFunc(gbt_t *gbt,uint8_t *buf, int32_t len);
+static uint32_t __memRead(gbt_t *gbt, uint32_t startAddress, uint8_t *buff, uint32_t len);
+static uint32_t __memWrite(gbt_t *gbt, uint32_t startAddress, uint8_t *buff, uint32_t len);
+
 static void dummyOut(uint8_t *buf, int32_t len);
 static void parcer(gbt_t *gbt, uint8_t byte);
 static void sendACK(gbt_t *gbt);
@@ -66,8 +97,9 @@ static void sendCommandsList(gbt_t *gbt);
 
 static uint8_t isRdpInactive(gbt_t *gbt);
 
-static void setBuffNum(gbt_t *gbt, uint32_t num);
+static uint32_t setBuffNum(gbt_t *gbt, uint32_t num);
 static uint8_t putBuff(gbt_t *gbt, uint8_t data);
-static uint8_t xorVerify(uint8_t *buff, uint32_t num, uint8_t checksum);
+//static uint8_t xorVerify(uint8_t *buff, uint32_t num, uint8_t checksum);
+static uint8_t xorVerify(gbt_t *gbt);
 
 #endif

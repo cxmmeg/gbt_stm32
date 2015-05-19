@@ -37,3 +37,6 @@ latex/
 gbtTest/build/
 gbtTest/dist/
 gbtTest/nbproject/private
+gbtTest/nbproject/Makefile*
+gbtTest/nbproject/Package*
+

@@ -6,26 +6,33 @@
 #define __STATE_EXEC (2)
 
 /* Handler API */
-void gbt_init(gbt_t *gbt) {
-    gbt->state = __STATE_RECV_CMD;
+void gbt_init(gbt_t *gbt, uint8_t *rxbuf, uint32_t rxBufLen, gbt_handlers_t *handlers) {
+    gbt->state = STATE_WAIT_CMD;
     gbt->command = GBT_CMD_GET;
-    gbt->outFunc = dummyOut;
+    gbt->recvBuf = rxbuf;
+    gbt->recvBufLength = rxBufLen;
+    gbt->recvLen = gbt->recvIndex= 0;
+    gbt->handlers= handlers;
 }
 
-void gbt_in(gbt_t *gbt, uint8_t *buf, int *len) {
+void gbt_in(gbt_t *gbt, uint8_t *buf, uint32_t len) {
     int index = 0;
-    while (index<*len) {
+    while (index<len) {
         parcer(gbt, buf[index]);
         index++;
     }
 }
 
 void gbt_addCallbackOut(gbt_t *gbt, callbackOut_t *callback) {
-    gbt->outFunc = callback;
+    gbt->handlers->outFunc = callback;
 }
 
 void gbt_setStartAddress(gbt_t *gbt, uint32_t addr){
     
+}
+
+uint32_t gbt_write(uint32_t startAddress, uint8_t *buff, uint32_t len){
+    return 0;
 }
 
 /*
@@ -63,7 +70,7 @@ static void parcer(gbt_t *gbt, uint8_t data) {
              * STATE_CHECK_CMD_GET
              */
         case STATE_CHECK_CMD_GET:
-            if (data == ~GBT_CMD_GET) {
+            if (data == (uint8_t)~GBT_CMD_GET) {
                 sendACK(gbt);
                 sendLength(gbt, GBT_NUM_CMDS);
                 sendVersion(gbt);
@@ -79,7 +86,7 @@ static void parcer(gbt_t *gbt, uint8_t data) {
              * STATE_CHECK_CMD_WM
              */
         case STATE_CHECK_CMD_WM:
-            if(data== ~GBT_CMD_WRITE_MEM){
+            if(data== (uint8_t)~GBT_CMD_WRITE_MEM){
                 if(isRdpInactive(gbt)){
                     sendACK(gbt);
                     gbt->state = STATE_CMD_WM_RECV_SADDR_CS;
@@ -98,9 +105,10 @@ static void parcer(gbt_t *gbt, uint8_t data) {
         case STATE_CMD_WM_RECV_SADDR_CS:
             if (putBuff(gbt, data)) {
                 /* Запись стартового адреса TODO!!!*/
-                if (xorVerify(gbt->recvBuf, GBT_NUM_ADDR_CS - 1, gbt->recvBuf[GBT_NUM_ADDR_CS - 1])) {
+                if (!xorVerify(gbt)) {
                     startAddress = gbt->recvBuf[3] << 24 | gbt->recvBuf[2] << 16 | gbt->recvBuf[1] << 8 | gbt->recvBuf[0];
-                    gbt_setStartAddress(gbt, startAddress);
+                    //gbt_setStartAddress(gbt, startAddress);
+                    sendACK(gbt);
                     gbt->state = STATE_CMD_WM_RECV_NUM_DATA;
                 } else {
                     sendNACK(gbt);
@@ -116,46 +124,91 @@ static void parcer(gbt_t *gbt, uint8_t data) {
              * STATE_CMD_WM_RECV_NUM_DATA
              */
         case STATE_CMD_WM_RECV_NUM_DATA:
-            
+            setBuffNum(gbt, data+2); /* Added receive num + size + checksum */
+            putBuff(gbt, data);
+            gbt->state = STATE_CMD_WM_RECV_DATA;
             break;
+        case STATE_CMD_WM_RECV_DATA:
+            if(putBuff(gbt, data)){
+                /* Данные получены */
+                /* ??? */
+                if(!xorVerify(gbt)){
+                    /* Запись полученных данных в память */
+                    __memWrite(gbt, startAddress, (gbt->recvBuf)+1, gbt->recvLen-2);
+                    sendACK(gbt);
+                    gbt->state = STATE_WAIT_CMD;
+                } else {
+                    sendNACK(gbt);
+                    gbt->state = STATE_WAIT_CMD;
+                }
+            }
+            else {
+                gbt->state=STATE_CMD_WM_RECV_DATA;
+            }
+            break;
+            
     }
+}
+
+static void __outFunc(gbt_t *gbt,uint8_t *buf, int32_t len){
+    if(gbt->handlers->outFunc){
+        gbt->handlers->outFunc(buf,len);
+    }
+}
+
+static uint32_t __memRead(gbt_t *gbt, uint32_t startAddress, uint8_t *buff, uint32_t len){
+    if(gbt->handlers->memRead){
+        return gbt->handlers->memRead(startAddress, buff, len);
+    } else return 0;
+}
+
+static uint32_t __memWrite(gbt_t *gbt, uint32_t startAddress, uint8_t *buff, uint32_t len){
+    if(gbt->handlers->memWrite){
+        return gbt->handlers->memWrite(startAddress, buff, len);
+    } else return 0;
 }
 
 static void sendACK(gbt_t *gbt) {
     uint8_t ack = GBT_ACK;
-    gbt->outFunc(&ack, 1);
+    __outFunc(gbt, &ack, 1);
 }
 
 static void sendNACK(gbt_t *gbt) {
     uint8_t nack = GBT_NACK;
-    gbt->outFunc(&nack, 1);
+    __outFunc(gbt, &nack, 1);
 }
 
 /* Отослать длинну пакета */
 static void sendLength(gbt_t *gbt, uint8_t len) {
-    gbt->outFunc(&len, 1);
+    __outFunc(gbt, &len, 1);
 }
 
 static void sendVersion(gbt_t *gbt) {
     uint8_t ver = GBT_VERSION;
-    gbt->outFunc(&ver, 1);
+    __outFunc(gbt, &ver, 1);
 }
 
 static void sendCommandsList(gbt_t *gbt) {
     uint8_t pack[GBT_NUM_CMDS] = {GBT_CMD_GET, GBT_CMD_GET_ID, GBT_CMD_READ_MEM, GBT_CMD_WRITE_MEM, GBT_CMD_GO, GBT_CMD_ERASE};
-    gbt->outFunc(pack, GBT_NUM_CMDS);
+    __outFunc(gbt, pack, GBT_NUM_CMDS);
 }
 
+
 static void dummyOut(uint8_t *buf, int32_t len) {
+}
+
+static uint32_t dummyMemRW(uint32_t startAddress, uint8_t *buff, uint32_t len){
+    
 }
 
 static uint8_t isRdpInactive(gbt_t *gbt){
     
 }
 
-static void setBuffNum(gbt_t *gbt, uint32_t num){
-    gbt->recvLen = num;
+static uint32_t setBuffNum(gbt_t *gbt, uint32_t num){
+    gbt->recvLen = num > gbt->recvBufLength? gbt->recvBufLength : num;
     gbt->recvIndex = 0;
+    return gbt->recvLen;
 }
 
 static uint8_t putBuff(gbt_t *gbt, uint8_t data){
@@ -164,12 +217,12 @@ static uint8_t putBuff(gbt_t *gbt, uint8_t data){
     return gbt->recvIndex >= gbt->recvLen;
 }
 
-static uint8_t xorVerify(uint8_t *buff, uint32_t num, uint8_t checksum){
+static uint8_t xorVerify(gbt_t *gbt){
     uint8_t xorSum =0;
+    uint32_t num = gbt->recvLen;
+    
     while(num--){
-        xorSum ^= buff[num];
+        xorSum ^= gbt->recvBuf[num];
     }
-    if (xorSum ^ checksum == 0xff) return 1;
-    return 0;
+    return xorSum;
 }
- 
