@@ -53,11 +53,11 @@ int main(int argc, char** argv) {
     
     uint8_t RXbuf[255];
     
-    u_int8_t testArr_GET[] = {
+    uint8_t testArr_GET[] = {
         0x00,0xFF        
     };
     
-    u_int8_t testArr_WRITE_MEM[] = {
+    uint8_t testArr_WRITE_MEM[] = {
         0x31,0xCE,
         0x00,0x00,0x00,0x01,0x01,
         0x04,0x00,0x00,0x02,0x01,0x07
@@ -67,7 +67,12 @@ int main(int argc, char** argv) {
     gbt_init(&gbt, RXbuf, sizeof(RXbuf), &__handlers);
     gbt_addCallbackOut(&gbt,testCallbackOut);    
     
+    printf("Cmd GET\n");
+    gbt_in(&gbt, testArr_GET, sizeof(testArr_GET));
+    
+    printf("\nCmd WRITE\n");
     gbt_in(&gbt, testArr_WRITE_MEM, sizeof(testArr_WRITE_MEM));
+    
     
     printf("\nGBT! Привет!");
     

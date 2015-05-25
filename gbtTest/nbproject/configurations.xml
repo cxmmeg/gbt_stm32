@@ -38,6 +38,7 @@
       </toolsSet>
       <compileType>
         <cTool>
+          <standard>3</standard>
           <incDir>
             <pElem>../../gbt_stm32/src</pElem>
           </incDir>

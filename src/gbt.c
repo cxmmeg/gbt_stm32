@@ -45,6 +45,7 @@ extern void gbt_out(uint8_t *buf, int len){
 static void parcer(gbt_t *gbt, uint8_t data) {
     
     uint32_t startAddress=0;
+    uint32_t lenData=0;
     
     switch (gbt->state) {
             /*
@@ -106,7 +107,7 @@ static void parcer(gbt_t *gbt, uint8_t data) {
             if (putBuff(gbt, data)) {
                 /* Запись стартового адреса TODO!!!*/
                 if (!xorVerify(gbt)) {
-                    startAddress = gbt->recvBuf[3] << 24 | gbt->recvBuf[2] << 16 | gbt->recvBuf[1] << 8 | gbt->recvBuf[0];
+                    gbt->dataStartAddress = gbt->recvBuf[3] << 24 | gbt->recvBuf[2] << 16 | gbt->recvBuf[1] << 8 | gbt->recvBuf[0];
                     //gbt_setStartAddress(gbt, startAddress);
                     sendACK(gbt);
                     gbt->state = STATE_CMD_WM_RECV_NUM_DATA;
@@ -134,7 +135,7 @@ static void parcer(gbt_t *gbt, uint8_t data) {
                 /* ??? */
                 if(!xorVerify(gbt)){
                     /* Запись полученных данных в память */
-                    __memWrite(gbt, startAddress, (gbt->recvBuf)+1, gbt->recvLen-2);
+                    __memWrite(gbt, gbt->dataStartAddress, (gbt->recvBuf)+1, gbt->recvLen-2);
                     sendACK(gbt);
                     gbt->state = STATE_WAIT_CMD;
                 } else {
@@ -144,6 +145,69 @@ static void parcer(gbt_t *gbt, uint8_t data) {
             }
             else {
                 gbt->state=STATE_CMD_WM_RECV_DATA;
+            }
+            break;
+            //----------------------------------------------------------------------
+            
+            /*
+             * STATE_CHECK_CMD_RM
+             */
+        case STATE_CHECK_CMD_RM:
+            if(data== (uint8_t)~GBT_CMD_READ_MEM){
+                if(isRdpInactive(gbt)){
+                    sendACK(gbt);
+                    gbt->state = STATE_CMD_RM_RECV_SADDR_CS;
+                    setBuffNum(gbt, GBT_NUM_ADDR_CS);
+                }
+                else {
+                    sendNACK(gbt);
+                    gbt->state = STATE_WAIT_CMD;
+                }        
+            }            
+            break;
+            
+            /*
+             * STATE_CMD_RM_RECV_SADDR_CS
+             */
+        case STATE_CMD_RM_RECV_SADDR_CS:
+            if (putBuff(gbt, data)) {
+                /* Запись стартового адреса TODO!!!*/
+                if (!xorVerify(gbt)) {
+                    startAddress = gbt->recvBuf[3] << 24 | gbt->recvBuf[2] << 16 | gbt->recvBuf[1] << 8 | gbt->recvBuf[0];
+                    //gbt_setStartAddress(gbt, startAddress);
+                    sendACK(gbt);
+                    setBuffNum(gbt, 2); /* Added receive num + checksum */
+                    gbt->state = STATE_CMD_RM_RECV_NUM_DATA_CS;
+                    
+                } else {
+                    sendNACK(gbt);
+                    gbt->state = STATE_WAIT_CMD;
+                }
+            }
+            else {
+                gbt->state = STATE_CMD_RM_RECV_SADDR_CS;
+            }
+            break;
+            
+            /*
+             * STATE_CMD_RM_RECV_NUM_DATA_CS
+             */
+        case STATE_CMD_RM_RECV_NUM_DATA_CS:
+            
+            if (putBuff(gbt, data)){
+                if(!xorVerify(gbt)){
+                    sendACK(gbt);
+                    /****/
+                    /*Read*/
+                    
+                    /****/
+                }else{
+                    sendNACK(gbt);
+                    gbt->state = STATE_WAIT_CMD;
+                }
+            }
+            else {
+                gbt->state = STATE_CMD_RM_RECV_NUM_DATA_CS;
             }
             break;
             

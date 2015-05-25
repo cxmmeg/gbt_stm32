@@ -41,7 +41,12 @@ typedef enum {
     STATE_CMD_WM_RECV_SADDR_CS,
     STATE_CMD_WM_RECV_NUM_DATA,
     STATE_CMD_WM_RECV_DATA,
-    STATE_CHECK_CMD_RM
+
+    STATE_CMD_RM,
+    STATE_CHECK_CMD_RM,
+    STATE_CMD_RM_RECV_SADDR_CS,
+    STATE_CMD_RM_RECV_NUM_DATA_CS,
+
 } gbt_state_t;
 
 typedef struct {
@@ -52,6 +57,10 @@ typedef struct {
   uint32_t recvLen;
   uint8_t *recvBuf;
   uint32_t recvBufLength;
+  
+  uint32_t dataStartAddress;
+  uint32_t dataLen;
+  
   gbt_handlers_t *handlers;
 
 } gbt_t;
