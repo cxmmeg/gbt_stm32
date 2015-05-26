@@ -28,6 +28,7 @@ static void parcer(gbt_t *gbt, uint8_t data) {
 
     uint32_t startAddress = 0;
     uint32_t lenData = 0;
+    uint8_t *buf; 
 
     switch (gbt->state) {
             /*
@@ -175,7 +176,11 @@ static void parcer(gbt_t *gbt, uint8_t data) {
                     sendACK(gbt);
                     /****/
                     /*Read*/
-                    gbt->handlers->memRead();   
+                    gbt->dataLen=gbt->recvBuf[0];
+                    buf = __memRead(gbt, gbt->dataStartAddress, &(gbt->dataLen));                                        
+                    __outFunc(gbt, buf, gbt->dataLen);
+                    sendACK(gbt);
+                    gbt->state = STATE_WAIT_CMD;
                     /****/
                 } else {
                     sendNACK(gbt);

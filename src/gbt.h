@@ -24,7 +24,7 @@
 
 typedef void (callbackOut_t)(uint8_t *buf, int32_t len);
 typedef uint32_t (callbackMemWrite_t)(uint32_t startAddress, uint8_t *buf, uint32_t len);
-typedef uint8_t* (callbackMemRead_t)(uint32_t startAddress,  uint32_t len);
+typedef uint8_t* (callbackMemRead_t)(uint32_t startAddress,  uint32_t *len);
 typedef uint8_t (callbackMemClear_t)(uint32_t startAddress,  uint8_t filler, uint32_t len);
 
 typedef struct {

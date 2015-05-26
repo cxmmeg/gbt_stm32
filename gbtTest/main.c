@@ -10,6 +10,8 @@
 #include "gbt.h"
 
 gbt_t gbt;
+uint8_t __RXbuf[255];
+uint8_t __TXbuf[255];
 /*
  * 
  */
@@ -42,16 +44,29 @@ uint32_t callbackMemWrite(uint32_t startAddress, uint8_t *buff, uint32_t len){
     return i;
 }
 
+uint8_t* callbackMemRead(uint32_t startAddress, uint32_t *len){
+    return __TXbuf;
+}
+
+uint8_t callbackMemClear(uint32_t startAddress,  uint8_t filler, uint32_t len){
+    return 0;
+}
+
 gbt_handlers_t __handlers = {
     .outFunc = testCallbackOut,
-    .memRead = callbackMemWrite,
+    .memRead = callbackMemRead,
     .memWrite = callbackMemWrite,
-    .memClear = callbackMemWrite
+    .memClear = callbackMemClear
 };
 
 int main(int argc, char** argv) {
+      
+    int cnt;
+    cnt=sizeof(__TXbuf);
     
-    uint8_t RXbuf[255];
+    while(cnt--){
+        __TXbuf[cnt] = cnt;
+    }
     
     uint8_t testArr_GET[] = {
         0x00,0xFF        
@@ -64,7 +79,13 @@ int main(int argc, char** argv) {
         
     };
     
-    gbt_init(&gbt, RXbuf, sizeof(RXbuf), &__handlers);   
+    uint8_t testArr_READ_MEM[] = {
+        GBT_CMD_WRITE_MEM, ~GBT_CMD_WRITE_MEM,
+        0x00,0x00,0x00,0x01,0x01,
+        0x10, ~0x10
+    };
+    
+    gbt_init(&gbt, __RXbuf, sizeof(__RXbuf), &__handlers);   
     
     printf("Cmd GET\n");
     gbt_in(&gbt, testArr_GET, sizeof(testArr_GET));
@@ -72,6 +93,8 @@ int main(int argc, char** argv) {
     printf("\nCmd WRITE\n");
     gbt_in(&gbt, testArr_WRITE_MEM, sizeof(testArr_WRITE_MEM));
     
+    printf("\nCmd READ\n");
+    gbt_in(&gbt, testArr_READ_MEM, sizeof(testArr_READ_MEM));
     
     printf("\nGBT! Привет!");
     
