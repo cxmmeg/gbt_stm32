@@ -23,13 +23,15 @@
 #define GBT_STAGE_READ_START_ADDR_CHS (0x02)
 
 typedef void (callbackOut_t)(uint8_t *buf, int32_t len);
-typedef uint32_t (callbackMemRW_t)(uint32_t startAddress, uint8_t *buff, uint32_t len);
+typedef uint32_t (callbackMemWrite_t)(uint32_t startAddress, uint8_t *buf, uint32_t len);
+typedef uint8_t* (callbackMemRead_t)(uint32_t startAddress,  uint32_t len);
+typedef uint8_t (callbackMemClear_t)(uint32_t startAddress,  uint8_t filler, uint32_t len);
 
 typedef struct {
   callbackOut_t *outFunc;
-  callbackMemRW_t *memRead;
-  callbackMemRW_t *memWrite;
-  callbackMemRW_t *memClear;
+  callbackMemRead_t *memRead;
+  callbackMemWrite_t *memWrite;
+  callbackMemClear_t *memClear;
 }gbt_handlers_t;
 
 typedef enum {
@@ -74,29 +76,10 @@ typedef struct {
 void gbt_init(gbt_t *gbt, uint8_t *rxbuf, uint32_t rxBufLen, gbt_handlers_t *handlers);
 void gbt_in(gbt_t *gbt, uint8_t *buf, uint32_t len);
 
-/**
- * Установка калбака выходного потока данных на последовательное устройство
- * @param gbt
- * @param callback обработчик в формате void (callbackOut_t)(uint8_t *buf, int32_t len)
- */
-void gbt_addCallbackOut(gbt_t *gbt, callbackOut_t *callback);
-
-/* Запись полученных данных в память */
-/**
- * Запись полученных данных в память
- * @param gbt
- * @param buff начало буфера для записи
- * @param len длина записываемых данных
- */
-uint32_t gbt_write(uint32_t startAddress, uint8_t *buff, uint32_t len);
-
-/**********************/
-
 static void __outFunc(gbt_t *gbt,uint8_t *buf, int32_t len);
-static uint32_t __memRead(gbt_t *gbt, uint32_t startAddress, uint8_t *buff, uint32_t len);
+static uint8_t* __memRead(gbt_t *gbt, uint32_t startAddress, uint32_t len);
 static uint32_t __memWrite(gbt_t *gbt, uint32_t startAddress, uint8_t *buff, uint32_t len);
 
-static void dummyOut(uint8_t *buf, int32_t len);
 static void parcer(gbt_t *gbt, uint8_t byte);
 static void sendACK(gbt_t *gbt);
 static void sendNACK(gbt_t *gbt);

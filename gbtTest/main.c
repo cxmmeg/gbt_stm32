@@ -64,8 +64,7 @@ int main(int argc, char** argv) {
         
     };
     
-    gbt_init(&gbt, RXbuf, sizeof(RXbuf), &__handlers);
-    gbt_addCallbackOut(&gbt,testCallbackOut);    
+    gbt_init(&gbt, RXbuf, sizeof(RXbuf), &__handlers);   
     
     printf("Cmd GET\n");
     gbt_in(&gbt, testArr_GET, sizeof(testArr_GET));

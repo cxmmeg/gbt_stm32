@@ -1,6 +1,5 @@
 #include "gbt.h"
 
-
 #define __STATE_RECV_CMD (0)
 #define __STATE_RECV_CMD_CMP (1)
 #define __STATE_EXEC (2)
@@ -11,42 +10,25 @@ void gbt_init(gbt_t *gbt, uint8_t *rxbuf, uint32_t rxBufLen, gbt_handlers_t *han
     gbt->command = GBT_CMD_GET;
     gbt->recvBuf = rxbuf;
     gbt->recvBufLength = rxBufLen;
-    gbt->recvLen = gbt->recvIndex= 0;
-    gbt->handlers= handlers;
+    gbt->recvLen = gbt->recvIndex = 0;
+    gbt->handlers = handlers;
 }
 
 void gbt_in(gbt_t *gbt, uint8_t *buf, uint32_t len) {
     int index = 0;
-    while (index<len) {
+    while (index < len) {
         parcer(gbt, buf[index]);
         index++;
     }
 }
 
-void gbt_addCallbackOut(gbt_t *gbt, callbackOut_t *callback) {
-    gbt->handlers->outFunc = callback;
-}
-
-void gbt_setStartAddress(gbt_t *gbt, uint32_t addr){
-    
-}
-
-uint32_t gbt_write(uint32_t startAddress, uint8_t *buff, uint32_t len){
-    return 0;
-}
-
-/*
-extern void gbt_out(uint8_t *buf, int len){
-}
- */
-
-/***************/
+/****** Private Functions *********/
 
 static void parcer(gbt_t *gbt, uint8_t data) {
-    
-    uint32_t startAddress=0;
-    uint32_t lenData=0;
-    
+
+    uint32_t startAddress = 0;
+    uint32_t lenData = 0;
+
     switch (gbt->state) {
             /*
              * STATE_WAIT_CMD
@@ -71,7 +53,7 @@ static void parcer(gbt_t *gbt, uint8_t data) {
              * STATE_CHECK_CMD_GET
              */
         case STATE_CHECK_CMD_GET:
-            if (data == (uint8_t)~GBT_CMD_GET) {
+            if (data == (uint8_t) ~GBT_CMD_GET) {
                 sendACK(gbt);
                 sendLength(gbt, GBT_NUM_CMDS);
                 sendVersion(gbt);
@@ -87,19 +69,18 @@ static void parcer(gbt_t *gbt, uint8_t data) {
              * STATE_CHECK_CMD_WM
              */
         case STATE_CHECK_CMD_WM:
-            if(data== (uint8_t)~GBT_CMD_WRITE_MEM){
-                if(isRdpInactive(gbt)){
+            if (data == (uint8_t) ~GBT_CMD_WRITE_MEM) {
+                if (isRdpInactive(gbt)) {
                     sendACK(gbt);
                     gbt->state = STATE_CMD_WM_RECV_SADDR_CS;
                     setBuffNum(gbt, GBT_NUM_ADDR_CS);
-                }
-                else {
+                } else {
                     sendNACK(gbt);
                     gbt->state = STATE_WAIT_CMD;
-                }        
-            }            
+                }
+            }
             break;
-            
+
             /*
              * STATE_CMD_WM_RECV_SADDR_CS
              */
@@ -107,65 +88,61 @@ static void parcer(gbt_t *gbt, uint8_t data) {
             if (putBuff(gbt, data)) {
                 /* Запись стартового адреса TODO!!!*/
                 if (!xorVerify(gbt)) {
-                    gbt->dataStartAddress = gbt->recvBuf[3] << 24 | gbt->recvBuf[2] << 16 | gbt->recvBuf[1] << 8 | gbt->recvBuf[0];
-                    //gbt_setStartAddress(gbt, startAddress);
+                    gbt->dataStartAddress = gbt->recvBuf[0] << 24 | gbt->recvBuf[1] << 16 | gbt->recvBuf[2] << 8 | gbt->recvBuf[3];                    
                     sendACK(gbt);
                     gbt->state = STATE_CMD_WM_RECV_NUM_DATA;
                 } else {
                     sendNACK(gbt);
                     gbt->state = STATE_WAIT_CMD;
                 }
-            }
-            else {
+            } else {
                 gbt->state = STATE_CMD_WM_RECV_SADDR_CS;
             }
             break;
-            
+
             /*
              * STATE_CMD_WM_RECV_NUM_DATA
              */
         case STATE_CMD_WM_RECV_NUM_DATA:
-            setBuffNum(gbt, data+2); /* Added receive num + size + checksum */
+            setBuffNum(gbt, data + 2); /* Added receive num + size + checksum */
             putBuff(gbt, data);
             gbt->state = STATE_CMD_WM_RECV_DATA;
             break;
         case STATE_CMD_WM_RECV_DATA:
-            if(putBuff(gbt, data)){
+            if (putBuff(gbt, data)) {
                 /* Данные получены */
                 /* ??? */
-                if(!xorVerify(gbt)){
+                if (!xorVerify(gbt)) {
                     /* Запись полученных данных в память */
-                    __memWrite(gbt, gbt->dataStartAddress, (gbt->recvBuf)+1, gbt->recvLen-2);
+                    __memWrite(gbt, gbt->dataStartAddress, (gbt->recvBuf) + 1, gbt->recvLen - 2);
                     sendACK(gbt);
                     gbt->state = STATE_WAIT_CMD;
                 } else {
                     sendNACK(gbt);
                     gbt->state = STATE_WAIT_CMD;
                 }
-            }
-            else {
-                gbt->state=STATE_CMD_WM_RECV_DATA;
+            } else {
+                gbt->state = STATE_CMD_WM_RECV_DATA;
             }
             break;
             //----------------------------------------------------------------------
-            
+
             /*
              * STATE_CHECK_CMD_RM
              */
         case STATE_CHECK_CMD_RM:
-            if(data== (uint8_t)~GBT_CMD_READ_MEM){
-                if(isRdpInactive(gbt)){
+            if (data == (uint8_t) ~GBT_CMD_READ_MEM) {
+                if (isRdpInactive(gbt)) {
                     sendACK(gbt);
                     gbt->state = STATE_CMD_RM_RECV_SADDR_CS;
                     setBuffNum(gbt, GBT_NUM_ADDR_CS);
-                }
-                else {
+                } else {
                     sendNACK(gbt);
                     gbt->state = STATE_WAIT_CMD;
-                }        
-            }            
+                }
+            }
             break;
-            
+
             /*
              * STATE_CMD_RM_RECV_SADDR_CS
              */
@@ -173,61 +150,59 @@ static void parcer(gbt_t *gbt, uint8_t data) {
             if (putBuff(gbt, data)) {
                 /* Запись стартового адреса TODO!!!*/
                 if (!xorVerify(gbt)) {
-                    startAddress = gbt->recvBuf[3] << 24 | gbt->recvBuf[2] << 16 | gbt->recvBuf[1] << 8 | gbt->recvBuf[0];
+                    gbt->dataStartAddress = gbt->recvBuf[0] << 24 | gbt->recvBuf[1] << 16 | gbt->recvBuf[2] << 8 | gbt->recvBuf[3];
                     //gbt_setStartAddress(gbt, startAddress);
                     sendACK(gbt);
                     setBuffNum(gbt, 2); /* Added receive num + checksum */
                     gbt->state = STATE_CMD_RM_RECV_NUM_DATA_CS;
-                    
+
                 } else {
                     sendNACK(gbt);
                     gbt->state = STATE_WAIT_CMD;
                 }
-            }
-            else {
+            } else {
                 gbt->state = STATE_CMD_RM_RECV_SADDR_CS;
             }
             break;
-            
+
             /*
              * STATE_CMD_RM_RECV_NUM_DATA_CS
              */
         case STATE_CMD_RM_RECV_NUM_DATA_CS:
-            
-            if (putBuff(gbt, data)){
-                if(!xorVerify(gbt)){
+
+            if (putBuff(gbt, data)) {
+                if (!xorVerify(gbt)) {
                     sendACK(gbt);
                     /****/
                     /*Read*/
-                    
+                    gbt->handlers->memRead();   
                     /****/
-                }else{
+                } else {
                     sendNACK(gbt);
                     gbt->state = STATE_WAIT_CMD;
                 }
-            }
-            else {
+            } else {
                 gbt->state = STATE_CMD_RM_RECV_NUM_DATA_CS;
             }
             break;
-            
+
     }
 }
 
-static void __outFunc(gbt_t *gbt,uint8_t *buf, int32_t len){
-    if(gbt->handlers->outFunc){
-        gbt->handlers->outFunc(buf,len);
+static void __outFunc(gbt_t *gbt, uint8_t *buf, int32_t len) {
+    if (gbt->handlers->outFunc) {
+        gbt->handlers->outFunc(buf, len);
     }
 }
 
-static uint32_t __memRead(gbt_t *gbt, uint32_t startAddress, uint8_t *buff, uint32_t len){
-    if(gbt->handlers->memRead){
-        return gbt->handlers->memRead(startAddress, buff, len);
+static uint8_t* __memRead(gbt_t *gbt, uint32_t startAddress, uint32_t len) {
+    if (gbt->handlers->memRead) {
+        return gbt->handlers->memRead(startAddress, len);
     } else return 0;
 }
 
-static uint32_t __memWrite(gbt_t *gbt, uint32_t startAddress, uint8_t *buff, uint32_t len){
-    if(gbt->handlers->memWrite){
+static uint32_t __memWrite(gbt_t *gbt, uint32_t startAddress, uint8_t *buff, uint32_t len) {
+    if (gbt->handlers->memWrite) {
         return gbt->handlers->memWrite(startAddress, buff, len);
     } else return 0;
 }
@@ -257,35 +232,34 @@ static void sendCommandsList(gbt_t *gbt) {
     __outFunc(gbt, pack, GBT_NUM_CMDS);
 }
 
-
 static void dummyOut(uint8_t *buf, int32_t len) {
 }
 
-static uint32_t dummyMemRW(uint32_t startAddress, uint8_t *buff, uint32_t len){
-    
+static uint32_t dummyMemRW(uint32_t startAddress, uint8_t *buff, uint32_t len) {
+
 }
 
-static uint8_t isRdpInactive(gbt_t *gbt){
-    
+static uint8_t isRdpInactive(gbt_t *gbt) {
+
 }
 
-static uint32_t setBuffNum(gbt_t *gbt, uint32_t num){
-    gbt->recvLen = num > gbt->recvBufLength? gbt->recvBufLength : num;
+static uint32_t setBuffNum(gbt_t *gbt, uint32_t num) {
+    gbt->recvLen = num > gbt->recvBufLength ? gbt->recvBufLength : num;
     gbt->recvIndex = 0;
     return gbt->recvLen;
 }
 
-static uint8_t putBuff(gbt_t *gbt, uint8_t data){
+static uint8_t putBuff(gbt_t *gbt, uint8_t data) {
     gbt->recvBuf[gbt->recvIndex] = data;
     gbt->recvIndex++;
     return gbt->recvIndex >= gbt->recvLen;
 }
 
-static uint8_t xorVerify(gbt_t *gbt){
-    uint8_t xorSum =0;
+static uint8_t xorVerify(gbt_t *gbt) {
+    uint8_t xorSum = 0;
     uint32_t num = gbt->recvLen;
-    
-    while(num--){
+
+    while (num--) {
         xorSum ^= gbt->recvBuf[num];
     }
     return xorSum;
