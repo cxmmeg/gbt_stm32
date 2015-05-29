@@ -1,9 +1,5 @@
 #include "gbt.h"
 
-#define __STATE_RECV_CMD (0)
-#define __STATE_RECV_CMD_CMP (1)
-#define __STATE_EXEC (2)
-
 /* Handler API */
 void gbt_init(gbt_t *gbt, uint8_t *rxbuf, uint32_t rxBufLen, gbt_handlers_t *handlers) {
     gbt->state = STATE_WAIT_CMD;
@@ -12,6 +8,8 @@ void gbt_init(gbt_t *gbt, uint8_t *rxbuf, uint32_t rxBufLen, gbt_handlers_t *han
     gbt->recvBufLength = rxBufLen;
     gbt->recvLen = gbt->recvIndex = 0;
     gbt->handlers = handlers;
+    gbt->pidBuf = 0;
+    gbt->pidLen = 0;
 }
 
 void gbt_in(gbt_t *gbt, uint8_t *buf, uint32_t len) {
@@ -20,6 +18,11 @@ void gbt_in(gbt_t *gbt, uint8_t *buf, uint32_t len) {
         parcer(gbt, buf[index]);
         index++;
     }
+}
+
+void gbt_setPid(gbt_t *gbt, uint8_t *pidBuf, uint32_t len){
+    gbt->pidBuf = pidBuf;
+    gbt->pidLen = len;
 }
 
 /****** Private Functions *********/
@@ -200,7 +203,7 @@ static void __outFunc(gbt_t *gbt, uint8_t *buf, int32_t len) {
     }
 }
 
-static uint8_t* __memRead(gbt_t *gbt, uint32_t startAddress, uint32_t len) {
+static uint8_t* __memRead(gbt_t *gbt, uint32_t startAddress, uint32_t *len) {
     if (gbt->handlers->memRead) {
         return gbt->handlers->memRead(startAddress, len);
     } else return 0;

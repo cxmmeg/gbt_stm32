@@ -80,9 +80,9 @@ int main(int argc, char** argv) {
     };
     
     uint8_t testArr_READ_MEM[] = {
-        GBT_CMD_WRITE_MEM, ~GBT_CMD_WRITE_MEM,
+        GBT_CMD_READ_MEM, ~GBT_CMD_READ_MEM,
         0x00,0x00,0x00,0x01,0x01,
-        0x10, ~0x10
+        0x10, 0x10
     };
     
     gbt_init(&gbt, __RXbuf, sizeof(__RXbuf), &__handlers);   
