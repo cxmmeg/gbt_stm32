@@ -48,6 +48,9 @@ static void parcer(gbt_t *gbt, uint8_t data) {
                 case GBT_CMD_READ_MEM:
                     gbt->state = STATE_CHECK_CMD_RM;
                     break;
+                case GBT_CMD_GET_ID: 
+                    gbt->state = STATE_CHECK_GID;
+                    break;
                 default:
                     sendNACK(gbt);
             }
@@ -193,6 +196,15 @@ static void parcer(gbt_t *gbt, uint8_t data) {
                 gbt->state = STATE_CMD_RM_RECV_NUM_DATA_CS;
             }
             break;
+            
+            
+        case STATE_CHECK_GID:
+            if (data == (uint8_t) ~GBT_CMD_GET_ID) {
+               sendACK(gbt);
+               sendPid(gbt);
+               sendACK(gbt);
+            }
+            break;
 
     }
 }
@@ -239,14 +251,14 @@ static void sendCommandsList(gbt_t *gbt) {
     uint8_t pack[GBT_NUM_CMDS] = {GBT_CMD_GET, GBT_CMD_GET_ID, GBT_CMD_READ_MEM, GBT_CMD_WRITE_MEM, GBT_CMD_GO, GBT_CMD_ERASE};
     __outFunc(gbt, pack, GBT_NUM_CMDS);
 }
-
+/*
 static void dummyOut(uint8_t *buf, int32_t len) {
 }
 
 static uint32_t dummyMemRW(uint32_t startAddress, uint8_t *buff, uint32_t len) {
 
 }
-
+*/
 static uint8_t isRdpInactive(gbt_t *gbt) {
 
 }
@@ -271,4 +283,9 @@ static uint8_t xorVerify(gbt_t *gbt) {
         xorSum ^= gbt->recvBuf[num];
     }
     return xorSum;
+}
+
+static void sendPid(gbt_t *gbt){
+    __outFunc(gbt, gbt->pidLen, 1);
+    __outFunc(gbt, gbt->pidBuf, gbt->pidLen);
 }

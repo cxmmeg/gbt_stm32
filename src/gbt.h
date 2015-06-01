@@ -93,6 +93,7 @@ static void sendNACK(gbt_t *gbt);
 static void sendLength(gbt_t *gbt, uint8_t len);
 static void sendVersion(gbt_t *gbt);
 static void sendCommandsList(gbt_t *gbt);
+static void sendPid(gbt_t *gbt);
 
 static uint8_t isRdpInactive(gbt_t *gbt);
 
