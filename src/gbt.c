@@ -286,6 +286,6 @@ static uint8_t xorVerify(gbt_t *gbt) {
 }
 
 static void sendPid(gbt_t *gbt){
-    __outFunc(gbt, gbt->pidLen, 1);
+    __outFunc(gbt, &gbt->pidLen, 1);
     __outFunc(gbt, gbt->pidBuf, gbt->pidLen);
 }

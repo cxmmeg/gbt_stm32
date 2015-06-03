@@ -85,7 +85,16 @@ int main(int argc, char** argv) {
         0x10, 0x10
     };
     
-    gbt_init(&gbt, __RXbuf, sizeof(__RXbuf), &__handlers);   
+    uint8_t testArr_ID[] = {
+        0x10, 0x11
+    };
+    
+    uint8_t testArr_GET_ID[] = {
+        GBT_CMD_GET_ID, ~GBT_CMD_GET_ID
+    };
+    
+    gbt_init(&gbt, __RXbuf, sizeof(__RXbuf), &__handlers);
+    gbt_setPid(&gbt, testArr_ID, sizeof(testArr_ID));
     
     printf("Cmd GET\n");
     gbt_in(&gbt, testArr_GET, sizeof(testArr_GET));
@@ -95,6 +104,9 @@ int main(int argc, char** argv) {
     
     printf("\nCmd READ\n");
     gbt_in(&gbt, testArr_READ_MEM, sizeof(testArr_READ_MEM));
+    
+    printf("\nCmd READ ID\n");
+    gbt_in(&gbt, testArr_GET_ID, sizeof(testArr_GET_ID));
     
     printf("\nGBT! Привет!");
     
