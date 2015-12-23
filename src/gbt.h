@@ -38,7 +38,7 @@ typedef enum {
     STATE_WAIT_CMD = 0,
     STATE_CHECK_CMD_GET,
     STATE_CMD_GET,
-            
+
     STATE_CHECK_CMD_WM,
     STATE_CMD_WM,
     STATE_CMD_WM_RECV_SADDR_CS,
@@ -49,9 +49,12 @@ typedef enum {
     STATE_CHECK_CMD_RM,
     STATE_CMD_RM_RECV_SADDR_CS,
     STATE_CMD_RM_RECV_NUM_DATA_CS,
+
+    STATE_CMD_GID,
+    STATE_CHECK_GID,
             
-            STATE_CMD_GID,
-            STATE_CHECK_GID
+    STATE_CMD_GO,
+    STATE_CHECK_GO
 
 } gbt_state_t;
 

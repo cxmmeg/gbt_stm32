@@ -51,6 +51,9 @@ static void parcer(gbt_t *gbt, uint8_t data) {
                 case GBT_CMD_GET_ID: 
                     gbt->state = STATE_CHECK_GID;
                     break;
+                case GBT_CMD_GO:
+                    gbt->state = STATE_CHECK_GO;
+                    break;
                 default:
                     sendNACK(gbt);
             }
