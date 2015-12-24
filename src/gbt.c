@@ -53,6 +53,9 @@ static void parcer(gbt_t *gbt, uint8_t data) {
                     break;
                 case GBT_CMD_GO:
                     gbt->state = STATE_CHECK_GO;
+                    break;                
+                case GBT_CMD_ERASE:
+                    gbt->state = STATE_CHECK_CMD_ERASE;
                     break;
                 default:
                     sendNACK(gbt);
@@ -206,9 +209,61 @@ static void parcer(gbt_t *gbt, uint8_t data) {
                sendACK(gbt);
                sendPid(gbt);
                sendACK(gbt);
+            }else {
+               sendNACK(gbt);
             }
+            gbt->state = STATE_WAIT_CMD;
             break;
-
+            
+        case STATE_CHECK_CMD_ERASE:
+          if (data == (uint8_t) ~GBT_CMD_ERASE){
+            if (isRdpInactive(gbt)) {
+                    sendACK(gbt);
+                    gbt->state = STATE_CMD_ERASE_RECV_NUM_PAGES;
+                    //setBuffNum(gbt, GBT_NUM_ADDR_CS);
+            } else {
+                    sendNACK(gbt);
+                    gbt->state = STATE_WAIT_CMD;
+            }
+          } else {
+                sendNACK(gbt);
+                gbt->state = STATE_WAIT_CMD;
+          }
+          break;
+          
+        case STATE_CMD_ERASE_RECV_NUM_PAGES:
+          if(data == 0xFF){
+             gbt->state = STATE_CMD_ERASE_MASS;
+          } else {
+            setBuffNum(gbt, data+2);
+            putBuff(gbt, data);
+            gbt->state = STATE_CMD_ERASE_RECV_PAGES_CS;
+          }
+          break;
+          
+        case STATE_CMD_ERASE_RECV_PAGES_CS:
+          if (putBuff(gbt,data)){
+            if(!xorVerify(gbt)){
+              __memErase(gbt, (gbt->recvBuf)+1, gbt->recvLen - 2);
+              sendACK(gbt);  
+            }
+            else sendNACK(gbt);
+            gbt->state = STATE_WAIT_CMD;
+          } 
+          else gbt->state = STATE_CMD_ERASE_RECV_PAGES_CS;
+          break;
+          
+        case STATE_CMD_ERASE_MASS:
+          if (data == 0){
+            // TODO!!!
+            __memErase(gbt,0,0);
+            sendACK(gbt);
+          }
+          else {
+            sendNACK(gbt);
+          }
+          gbt->state = STATE_WAIT_CMD;
+          break;
     }
 }
 
@@ -227,6 +282,12 @@ static uint8_t* __memRead(gbt_t *gbt, uint32_t startAddress, uint32_t *len) {
 static uint32_t __memWrite(gbt_t *gbt, uint32_t startAddress, uint8_t *buff, uint32_t len) {
     if (gbt->handlers->memWrite) {
         return gbt->handlers->memWrite(startAddress, buff, len);
+    } else return 0;
+}
+
+static uint32_t __memErase(gbt_t *gbt, uint8_t *buff, uint32_t len) {
+    if (gbt->handlers->memErase) {
+        return gbt->handlers->memErase(buff, len);
     } else return 0;
 }
 

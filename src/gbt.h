@@ -25,13 +25,13 @@
 typedef void (callbackOut_t)(uint8_t *buf, int32_t len);
 typedef uint32_t (callbackMemWrite_t)(uint32_t startAddress, uint8_t *buf, uint32_t len);
 typedef uint8_t* (callbackMemRead_t)(uint32_t startAddress,  uint32_t *len);
-typedef uint8_t (callbackMemClear_t)(uint32_t startAddress,  uint8_t filler, uint32_t len);
+typedef uint8_t (callbackMemErase_t)(uint8_t *pages,  uint32_t len);
 
 typedef struct {
   callbackOut_t *outFunc;
   callbackMemRead_t *memRead;
   callbackMemWrite_t *memWrite;
-  callbackMemClear_t *memClear;
+  callbackMemErase_t *memErase;
 }gbt_handlers_t;
 
 typedef enum {
@@ -54,8 +54,14 @@ typedef enum {
     STATE_CHECK_GID,
             
     STATE_CMD_GO,
-    STATE_CHECK_GO
+    STATE_CHECK_GO,
 
+    STATE_CMD_ERASE,
+    STATE_CHECK_CMD_ERASE,
+    STATE_CMD_ERASE_RECV_NUM_PAGES,
+    STATE_CMD_ERASE_MASS,
+    STATE_CMD_ERASE_RECV_PAGES_CS
+      
 } gbt_state_t;
 
 typedef struct {
@@ -89,6 +95,7 @@ void gbt_setPid(gbt_t *gbt, uint8_t *pidBuf, uint32_t len);
 static void __outFunc(gbt_t *gbt,uint8_t *buf, int32_t len);
 static uint8_t* __memRead(gbt_t *gbt, uint32_t startAddress, uint32_t *len);
 static uint32_t __memWrite(gbt_t *gbt, uint32_t startAddress, uint8_t *buff, uint32_t len);
+static uint32_t __memErase(gbt_t *gbt, uint8_t *buff, uint32_t len);
 
 static void parcer(gbt_t *gbt, uint8_t byte);
 static void sendACK(gbt_t *gbt);
