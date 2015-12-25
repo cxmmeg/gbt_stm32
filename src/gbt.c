@@ -324,7 +324,7 @@ static uint32_t dummyMemRW(uint32_t startAddress, uint8_t *buff, uint32_t len) {
 }
 */
 static uint8_t isRdpInactive(gbt_t *gbt) {
-
+  return 1;
 }
 
 static uint32_t setBuffNum(gbt_t *gbt, uint32_t num) {
